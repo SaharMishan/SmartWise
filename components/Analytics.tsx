@@ -11,7 +11,7 @@ import {
   Calendar, ChevronDown, TrendingUp, Activity, 
   PieChart as PieIcon, Zap, Wallet, 
   BarChart3, TrendingDown, Info, CreditCard, 
-  ShoppingBag, ArrowRightLeft, MousePointer2, ChevronLeft, X,
+  ShoppingBag, ArrowRightLeft, MousePointer2, ChevronLeft, X, ArrowUp, ArrowDown,
   ShoppingBag as ShoppingIcon, Hash, Target
 } from 'lucide-react';
 import { PAYMENT_METHODS } from '../constants';
@@ -101,12 +101,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ state }) => {
   const categorySummary = useMemo(() => {
     if (!selectedCategoryId) return null;
     const items = selectedCategoryTransactions;
-    const total = items.reduce((sum, t) => sum + t.amount, 0);
+    const incomeTotal = items.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const expenseTotal = items.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const netTotal = incomeTotal - expenseTotal;
     const count = items.length;
-    const avg = total / count;
-    const percentOfExpenses = totalExpenses > 0 ? (total / totalExpenses) * 100 : 0;
+    const avg = count > 0 ? (expenseTotal / count) : 0;
+    const percentOfExpenses = totalExpenses > 0 ? (expenseTotal / totalExpenses) * 100 : 0;
     
-    return { total, count, avg, percentOfExpenses };
+    return { incomeTotal, expenseTotal, netTotal, count, avg, percentOfExpenses };
   }, [selectedCategoryId, selectedCategoryTransactions, totalExpenses]);
 
   const onPieClick = (data: any) => {
@@ -304,25 +306,29 @@ const Analytics: React.FC<AnalyticsProps> = ({ state }) => {
           >
             {/* Intelligent Summary Header */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
-                 <div className="p-2 bg-brand/10 text-brand rounded-xl"><Wallet size={16} /></div>
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סה"כ לקטגוריה</p>
-                 <h4 className="text-2xl font-black text-gray-800 dark:text-white" dir="ltr">₪{categorySummary.total.toLocaleString()}</h4>
+              <div className={`bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border shadow-sm flex flex-col items-center justify-center gap-2 ${categorySummary.netTotal >= 0 ? 'border-emerald-100 dark:border-emerald-900/20' : 'border-rose-100 dark:border-rose-900/20'}`}>
+                 <div className={`p-2 rounded-xl ${categorySummary.netTotal >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                   {categorySummary.netTotal >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                 </div>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">מאזן נטו לקטגוריה</p>
+                 <h4 className={`text-2xl font-black ${categorySummary.netTotal >= 0 ? 'text-emerald-500' : 'text-rose-500'}`} dir="ltr">
+                   {categorySummary.netTotal >= 0 ? '+' : ''}₪{categorySummary.netTotal.toLocaleString()}
+                 </h4>
               </div>
-              <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
-                 <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl"><Target size={16} /></div>
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">אחוז מסך ההוצאות</p>
-                 <h4 className="text-2xl font-black text-gray-800 dark:text-white">{Math.round(categorySummary.percentOfExpenses)}%</h4>
+              <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-emerald-50 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
+                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl"><ArrowUp size={16} /></div>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סה"כ הכנסות</p>
+                 <h4 className="text-2xl font-black text-emerald-500" dir="ltr">₪{categorySummary.incomeTotal.toLocaleString()}</h4>
+              </div>
+              <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-rose-50 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
+                 <div className="p-2 bg-rose-500/10 text-rose-500 rounded-xl"><ArrowDown size={16} /></div>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סה"כ הוצאות</p>
+                 <h4 className="text-2xl font-black text-rose-500" dir="ltr">₪{categorySummary.expenseTotal.toLocaleString()}</h4>
               </div>
               <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
                  <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl"><Hash size={16} /></div>
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">מספר תנועות</p>
+                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">תנועות</p>
                  <h4 className="text-2xl font-black text-gray-800 dark:text-white">{categorySummary.count}</h4>
-              </div>
-              <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[32px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-2">
-                 <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl"><TrendingUp size={16} /></div>
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ממוצע לתנועה</p>
-                 <h4 className="text-2xl font-black text-gray-800 dark:text-white" dir="ltr">₪{Math.round(categorySummary.avg).toLocaleString()}</h4>
               </div>
             </div>
 
@@ -372,7 +378,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ state }) => {
                                {PAYMENT_METHODS.find(pm => pm.id === t.paymentMethod)?.label}
                              </div>
                           </td>
-                          <td className="py-6 px-4 font-black text-gray-900 dark:text-white text-2xl text-left" dir="ltr">₪{t.amount.toLocaleString()}</td>
+                          <td className="py-6 px-4 font-black">
+                            <div className={`flex flex-col ${t.type === 'income' ? 'text-emerald-500' : 'text-gray-900 dark:text-white'}`}>
+                              <span className="text-2xl" dir="ltr">{t.type === 'income' ? '+' : '-'} ₪{t.amount.toLocaleString()}</span>
+                              <span className={`text-[10px] uppercase font-black tracking-widest ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400 opacity-60'}`}>
+                                {t.type === 'income' ? 'הכנסה' : 'הוצאה'}
+                              </span>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
