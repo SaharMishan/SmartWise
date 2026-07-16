@@ -8,7 +8,8 @@ import {
   Edit2, Trash2, Calendar, ChevronDown,
   X, AlertCircle, Bot, Search, Scissors,
   Send, Loader2, Target, Check, LineChart, 
-  Shield, Flame, Trophy, TrendingUp, ArrowUpRight, ArrowDownRight
+  Shield, Flame, Trophy, TrendingUp, ArrowUpRight, ArrowDownRight,
+  Filter, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -84,7 +85,14 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const [filters, setFilters] = useState({ description: '', type: 'all', category: 'all' });
+  const [filters, setFilters] = useState({ 
+    description: '', 
+    type: 'all', 
+    category: 'all',
+    day: 'all',
+    sortBy: 'date',
+    sortOrder: 'desc' as 'asc' | 'desc'
+  });
 
   const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
   const years = useMemo(() => Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i), []);
@@ -97,15 +105,52 @@ const Dashboard: React.FC<DashboardProps> = ({
     [state.transactions, selectedMonth, selectedYear]
   );
 
-  const displayTransactions = useMemo(() => 
-    fullMonthTransactions.filter(t => {
-      const matchesDesc = t.description.toLowerCase().includes(filters.description.toLowerCase());
+  // Compute available days of the selected month that actually have transactions
+  const availableDays = useMemo(() => {
+    const days = new Set<string>();
+    fullMonthTransactions.forEach(t => {
+      const parts = t.date.split('-');
+      if (parts[2]) {
+        days.add(parseInt(parts[2]).toString());
+      }
+    });
+    return Array.from(days).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [fullMonthTransactions]);
+
+  const displayTransactions = useMemo(() => {
+    let result = fullMonthTransactions.filter(t => {
+      const parts = t.date.split('-');
+      const tDay = parts[2] ? parseInt(parts[2]).toString() : '';
+
+      const matchesDesc = t.description.toLowerCase().includes(filters.description.toLowerCase()) ||
+                          t.categoryName?.toLowerCase().includes(filters.description.toLowerCase());
       const matchesType = filters.type === 'all' || t.type === filters.type;
       const matchesCat = filters.category === 'all' || t.categoryId === filters.category;
-      return matchesDesc && matchesType && matchesCat;
-    }),
-    [fullMonthTransactions, filters]
-  );
+      const matchesDay = filters.day === 'all' || tDay === filters.day;
+
+      return matchesDesc && matchesType && matchesCat && matchesDay;
+    });
+
+    // Sort transactions
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (filters.sortBy === 'date') {
+        comparison = a.date.localeCompare(b.date);
+      } else if (filters.sortBy === 'description') {
+        comparison = a.description.localeCompare(b.description);
+      } else if (filters.sortBy === 'category') {
+        const catA = a.categoryName || '';
+        const catB = b.categoryName || '';
+        comparison = catA.localeCompare(catB);
+      } else if (filters.sortBy === 'amount') {
+        comparison = a.amount - b.amount;
+      }
+
+      return filters.sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return result;
+  }, [fullMonthTransactions, filters]);
 
   const summary = useMemo(() => {
     return fullMonthTransactions.reduce((acc, t) => {
@@ -118,9 +163,41 @@ const Dashboard: React.FC<DashboardProps> = ({
   const monthBalance = summary.income - summary.expense;
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const now = new Date();
-  const dayOfMonth = (now.getMonth() === selectedMonth && now.getFullYear() === selectedYear) ? now.getDate() : daysInMonth;
-  const daysRemaining = Math.max(daysInMonth - dayOfMonth, 1);
-  const dailyBudget = monthBalance > 0 ? (monthBalance / daysRemaining) : 0;
+  
+  const isCurrentMonth = now.getMonth() === selectedMonth && now.getFullYear() === selectedYear;
+  const isFutureMonth = selectedYear > now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth > now.getMonth());
+  
+  let daysRemaining = 0;
+  let daysDivisor = 1;
+
+  if (isCurrentMonth) {
+    const currentDay = now.getDate();
+    daysRemaining = Math.max(daysInMonth - currentDay, 0);
+    daysDivisor = Math.max(daysInMonth - currentDay + 1, 1); // include today
+  } else if (isFutureMonth) {
+    daysRemaining = daysInMonth;
+    daysDivisor = daysInMonth;
+  } else {
+    // Past month
+    daysRemaining = 0;
+    daysDivisor = daysInMonth; // calculate average daily surplus over the entire month
+  }
+
+  // Smart calculations for budgets and actual spent
+  const totalBudgetsLimit = state.budgets.reduce((sum, b) => sum + b.amount, 0);
+  const totalMonthlyLimit = totalBudgetsLimit > 0 ? totalBudgetsLimit : summary.income;
+  const remainingDailyBudget = totalMonthlyLimit > 0 ? Math.max(0, (totalMonthlyLimit - summary.expense) / daysDivisor) : 0;
+
+  const daysPassed = isCurrentMonth ? Math.max(now.getDate(), 1) : (isFutureMonth ? 1 : daysInMonth);
+  const averageDailySpend = summary.expense / daysPassed;
+
+  const handleHeaderSort = (field: 'date' | 'description' | 'category' | 'amount') => {
+    setFilters(prev => ({
+      ...prev,
+      sortBy: field,
+      sortOrder: prev.sortBy === field ? (prev.sortOrder === 'asc' ? 'desc' : 'asc') : 'desc'
+    }));
+  };
 
   const topCategories = useMemo(() => {
     const cats: Record<string, {name: string, value: number, color: string}> = {};
@@ -385,7 +462,19 @@ const Dashboard: React.FC<DashboardProps> = ({
               <h2 className={`text-5xl md:text-8xl font-black tracking-tighter ${monthBalance < 0 ? 'text-rose-500' : 'text-gray-800 dark:text-white'}`} dir="ltr">₪{monthBalance.toLocaleString()}</h2>
            </div>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-12 relative z-10">
-              <div className="bg-gray-50/50 dark:bg-white/5 p-4 md:p-5 rounded-3xl text-center"><p className="text-[8px] md:text-[9px] font-black text-gray-400 mb-1">תקציב ליום</p><span className="text-lg md:text-xl font-black text-brand">₪{Math.round(dailyBudget)}</span></div>
+              <div className="bg-gray-50/50 dark:bg-white/5 p-4 md:p-5 rounded-3xl text-center flex flex-col justify-center">
+                <p className="text-[8px] md:text-[9px] font-black text-gray-400 mb-1">
+                  {totalMonthlyLimit > 0 ? "תקציב יומי נותר" : "הוצאה ממוצעת ליום"}
+                </p>
+                <span className="text-lg md:text-xl font-black text-brand">
+                  ₪{Math.round(totalMonthlyLimit > 0 ? remainingDailyBudget : averageDailySpend)}
+                </span>
+                {totalMonthlyLimit > 0 && (
+                  <span className="text-[9px] font-bold text-gray-400 mt-0.5">
+                    ממוצע בפועל: ₪{Math.round(averageDailySpend)}
+                  </span>
+                )}
+              </div>
               <div className="bg-gray-50/50 dark:bg-white/5 p-4 md:p-5 rounded-3xl text-center"><p className="text-[8px] md:text-[9px] font-black text-gray-400 mb-1">הכנסות</p><span className="text-lg md:text-xl font-black text-emerald-500">₪{summary.income.toLocaleString()}</span></div>
               <div className="bg-gray-50/50 dark:bg-white/5 p-4 md:p-5 rounded-3xl text-center"><p className="text-[8px] md:text-[9px] font-black text-gray-400 mb-1">הוצאות</p><span className="text-lg md:text-xl font-black text-gray-700 dark:text-gray-200">₪{summary.expense.toLocaleString()}</span></div>
               <div className="bg-gray-50/50 dark:bg-white/5 p-4 md:p-5 rounded-3xl text-center"><p className="text-[8px] md:text-[9px] font-black text-gray-400 mb-1">ימים לסוף</p><span className="text-lg md:text-xl font-black">{daysRemaining}</span></div>
@@ -422,12 +511,125 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
          </div>
          
+         {/* Advanced Filtering & Sorting Controls */}
+         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 bg-gray-50/50 dark:bg-white/5 p-6 rounded-3xl border border-gray-100 dark:border-white/10 text-right">
+            {/* filter type */}
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סוג תנועה</label>
+               <select 
+                  value={filters.type}
+                  onChange={e => setFilters({...filters, type: e.target.value})}
+                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/10 px-4 py-3 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 outline-none cursor-pointer focus:border-brand"
+               >
+                  <option value="all">כל התנועות</option>
+                  <option value="expense">הוצאות בלבד</option>
+                  <option value="income">הכנסות בלבד</option>
+               </select>
+            </div>
+
+            {/* filter category */}
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">קטגוריה</label>
+               <select 
+                  value={filters.category}
+                  onChange={e => setFilters({...filters, category: e.target.value})}
+                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/10 px-4 py-3 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 outline-none cursor-pointer focus:border-brand"
+               >
+                  <option value="all">כל הקטגוריות</option>
+                  {state.categories.map(cat => (
+                     <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+               </select>
+            </div>
+
+            {/* filter day of month */}
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">יום בחודש</label>
+               <select 
+                  value={filters.day}
+                  onChange={e => setFilters({...filters, day: e.target.value})}
+                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/10 px-4 py-3 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 outline-none cursor-pointer focus:border-brand"
+               >
+                  <option value="all">כל הימים</option>
+                  {availableDays.map(d => (
+                     <option key={d} value={d}>{d}</option>
+                  ))}
+               </select>
+            </div>
+
+            {/* sort by */}
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">מיון לפי</label>
+               <select 
+                  value={filters.sortBy}
+                  onChange={e => setFilters({...filters, sortBy: e.target.value})}
+                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/10 px-4 py-3 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 outline-none cursor-pointer focus:border-brand"
+               >
+                  <option value="date">תאריך</option>
+                  <option value="amount">סכום (מחיר)</option>
+                  <option value="category">קטגוריה</option>
+                  <option value="description">תיאור</option>
+               </select>
+            </div>
+
+            {/* sort order */}
+            <div className="flex flex-col gap-1.5">
+               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סדר מיון</label>
+               <button 
+                  onClick={() => setFilters({
+                     ...filters, 
+                     sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
+                  })}
+                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/10 px-4 py-3 rounded-2xl font-bold text-xs text-gray-700 dark:text-gray-200 flex items-center justify-between gap-2 hover:border-brand transition-colors w-full"
+               >
+                  <span>{filters.sortOrder === 'asc' ? 'עולה ↑' : 'יורד ↓'}</span>
+                  <ArrowUpDown size={14} className="text-gray-400" />
+               </button>
+            </div>
+         </div>
+
          {displayTransactions.length > 0 ? (
            <>
              {/* Desktop Table View */}
              <div className="hidden md:block overflow-x-auto no-scrollbar">
                 <table className="w-full text-right border-collapse">
-                  <thead><tr className="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/5"><th className="py-5 px-4 text-right">תאריך</th><th className="py-5 px-2 text-right">תיאור</th><th className="py-5 px-2 text-right">קטגוריה</th><th className="py-5 px-2 text-left">סכום</th><th className="py-5 px-4 text-center">ניהול</th></tr></thead>
+                  <thead>
+                    <tr className="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/5">
+                      <th 
+                        onClick={() => handleHeaderSort('date')}
+                        className="py-5 px-4 text-right cursor-pointer hover:text-brand transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          תאריך {filters.sortBy === 'date' && (filters.sortOrder === 'asc' ? '↑' : '↓')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleHeaderSort('description')}
+                        className="py-5 px-2 text-right cursor-pointer hover:text-brand transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          תיאור {filters.sortBy === 'description' && (filters.sortOrder === 'asc' ? '↑' : '↓')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleHeaderSort('category')}
+                        className="py-5 px-2 text-right cursor-pointer hover:text-brand transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          קטגוריה {filters.sortBy === 'category' && (filters.sortOrder === 'asc' ? '↑' : '↓')}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleHeaderSort('amount')}
+                        className="py-5 px-2 text-left cursor-pointer hover:text-brand transition-colors select-none"
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          סכום {filters.sortBy === 'amount' && (filters.sortOrder === 'asc' ? '↑' : '↓')}
+                        </div>
+                      </th>
+                      <th className="py-5 px-4 text-center">ניהול</th>
+                    </tr>
+                  </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                     {displayTransactions.map((t) => (
                       <tr key={t.id} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all">

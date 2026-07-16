@@ -1,14 +1,13 @@
-
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserState, Transaction } from '../types';
 import { auth, db } from '../firebase';
-import { doc, writeBatch, collection, addDoc } from 'firebase/firestore';
+import { doc, writeBatch, collection } from 'firebase/firestore';
 import { 
   Repeat, Plus, Trash2, Wallet, 
-  ArrowRight, ShieldCheck, CreditCard, Landmark, 
-  TrendingUp, Activity, PieChart, Calendar, Edit2, 
-  Settings2, AlertCircle, CheckCircle2, Info, Clock
+  ShieldCheck, CreditCard, 
+  TrendingUp, Activity, Edit2, 
+  Settings2, Clock
 } from 'lucide-react';
 import QuickEntryModal from './QuickEntryModal';
 
@@ -44,9 +43,19 @@ const RecurringTrackerView: React.FC<RecurringTrackerViewProps> = ({ state }) =>
     }).sort((a, b) => b.template.amount - a.template.amount);
   }, [state.transactions]);
 
-  const totalMonthlyRecurring = useMemo(() => {
-    return activeSeries.reduce((sum, s) => sum + s.template.amount, 0);
+  const totalMonthlyRecurringIncomes = useMemo(() => {
+    return activeSeries
+      .filter(s => s.template.type === 'income')
+      .reduce((sum, s) => sum + s.template.amount, 0);
   }, [activeSeries]);
+
+  const totalMonthlyRecurringExpenses = useMemo(() => {
+    return activeSeries
+      .filter(s => s.template.type === 'expense' || !s.template.type)
+      .reduce((sum, s) => sum + s.template.amount, 0);
+  }, [activeSeries]);
+
+  const netMonthlyRecurring = totalMonthlyRecurringIncomes - totalMonthlyRecurringExpenses;
 
   const deleteSeries = async (recurringId: string) => {
     if (!auth.currentUser || !confirm('האם לבטל את כל הסדרה העתידית? כל המופעים מהיום והלאה יימחקו מהיומן.')) return;
@@ -152,104 +161,138 @@ const RecurringTrackerView: React.FC<RecurringTrackerViewProps> = ({ state }) =>
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-gray-800 dark:text-white tracking-tight flex items-center gap-3">
-             <Repeat className="text-brand" size={32} /> ניהול הוצאות קבועות
+             <Repeat className="text-brand" size={32} /> ניהול הוצאות והכנסות קבועות
           </h1>
-          <p className="text-gray-400 font-bold text-lg">כאן תוכל לנהל, לערוך ולבטל סדרות תשלומים קבועות הפרוסות ביומן.</p>
+          <p className="text-gray-400 font-bold text-lg">כאן תוכל לנהל, לערוך ולבטל סדרות תשלומים והכנסות קבועות הפרוסות ביומן.</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 bg-[#0a1120] rounded-[48px] p-10 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border border-white/5">
-           <div className="absolute top-0 right-0 p-8 opacity-10"><Activity size={120} /></div>
+      {/* 3-Card Summary Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Recurring Incomes Card */}
+        <div className="bg-[#022c22] rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border border-emerald-500/10 min-h-[220px]">
+           <div className="absolute top-0 right-0 p-6 opacity-10 text-emerald-400"><TrendingUp size={100} /></div>
            <div className="space-y-2 relative z-10">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand">התחייבות חודשית קבועה</span>
-              <h2 className="text-6xl font-black text-white tracking-tighter" dir="ltr">₪{totalMonthlyRecurring.toLocaleString()}</h2>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">הכנסות קבועות חודשיות</span>
+              <h2 className="text-4xl font-black text-white tracking-tighter" dir="ltr">₪{totalMonthlyRecurringIncomes.toLocaleString()}</h2>
            </div>
-           <div className="mt-8 p-5 bg-white/5 rounded-3xl border border-white/5 relative z-10">
-              <p className="text-xs font-bold text-gray-400 leading-relaxed">
-                זהו הסכום המצטבר של כל הסדרות הפעילות שהגדרת. הוא יופיע אוטומטית בכל חודש עוקב ביומן שלך.
-              </p>
-           </div>
+           <p className="text-[11px] font-bold text-emerald-300/80 mt-6 relative z-10 leading-relaxed">
+             סך ההכנסות הקבועות (משכורת, מלגה וכו׳) שיופיעו אוטומטית מדי חודש.
+           </p>
         </div>
 
-        <div className="lg:col-span-8 bg-white dark:bg-[#1e1e1e] p-10 rounded-[48px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col md:flex-row items-center gap-10">
-           <div className="w-24 h-24 bg-brand/10 text-brand rounded-[32px] flex items-center justify-center shrink-0">
-              <ShieldCheck size={48} />
+        {/* Recurring Expenses Card */}
+        <div className="bg-[#450a0a] rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border border-rose-500/10 min-h-[220px]">
+           <div className="absolute top-0 right-0 p-6 opacity-10 text-rose-400"><CreditCard size={100} /></div>
+           <div className="space-y-2 relative z-10">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-400">הוצאות קבועות חודשיות</span>
+              <h2 className="text-4xl font-black text-white tracking-tighter" dir="ltr">₪{totalMonthlyRecurringExpenses.toLocaleString()}</h2>
            </div>
-           <div className="space-y-4">
-              <h3 className="text-2xl font-black text-gray-800 dark:text-white">איך זה עובד?</h3>
-              <p className="text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
-                כל תנועה שתסמן כ"קבועה" בעת ההזנה, תייצר סדרת תשלומים עתידית. 
-                כאן תוכל לראות את כל הסדרות הפעילות, לשנות את הסכום שלהן לכל העתיד או לבטל אותן לחלוטין בלחיצה אחת.
-              </p>
-           </div>
+           <p className="text-[11px] font-bold text-rose-300/80 mt-6 relative z-10 leading-relaxed">
+             סך ההוצאות הקבועות (מנויים, שכר דירה וכו׳) שיורדות אוטומטית מדי חודש.
+           </p>
         </div>
+
+        {/* Net Balance Card */}
+        <div className={`rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border min-h-[220px] ${netMonthlyRecurring >= 0 ? 'bg-[#0f172a] border-white/5' : 'bg-[#450e1a] border-rose-900/20'}`}>
+           <div className="absolute top-0 right-0 p-6 opacity-10 text-brand"><Wallet size={100} /></div>
+           <div className="space-y-2 relative z-10">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">יתרה קבועה נטו</span>
+              <h2 className={`text-4xl font-black tracking-tighter ${netMonthlyRecurring >= 0 ? 'text-brand' : 'text-rose-400'}`} dir="ltr">
+                {netMonthlyRecurring >= 0 ? '+' : ''}₪{netMonthlyRecurring.toLocaleString()}
+              </h2>
+           </div>
+           <p className="text-[11px] font-bold text-gray-400 mt-6 relative z-10 leading-relaxed">
+             התזרים החודשי הקבוע שנשאר לאחר קיזוז ההוצאות מההכנסות הקבועות.
+           </p>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-[#1e1e1e] p-8 rounded-[40px] border border-gray-100 dark:border-white/5 shadow-sm flex flex-col md:flex-row items-center gap-10">
+         <div className="w-16 h-16 bg-brand/10 text-brand rounded-[24px] flex items-center justify-center shrink-0">
+            <ShieldCheck size={36} />
+         </div>
+         <div className="space-y-2">
+            <h3 className="text-xl font-black text-gray-800 dark:text-white">איך זה עובד?</h3>
+            <p className="text-gray-500 dark:text-gray-400 font-bold leading-relaxed text-sm">
+              כל תנועה שתסמן כ"קבועה" בעת ההזנה (הוצאה או הכנסה), תייצר סדרת תנועות עתידית בהתאם לתאריך התפוגה שהגדרת. 
+              כאן תוכל לראות את כל הסדרות הפעילות, לשנות את גובה הסכום לכל העתיד או לבטל אותן לחלוטין בלחיצה אחת.
+            </p>
+         </div>
       </div>
 
       <div className="bg-white dark:bg-[#1e1e1e] rounded-[48px] p-6 md:p-12 border border-gray-100 dark:border-white/5 shadow-sm overflow-hidden">
         <div className="flex items-center gap-4 mb-12">
            <div className="w-12 h-12 bg-gray-50 dark:bg-white/5 text-brand rounded-2xl flex items-center justify-center shadow-inner"><Settings2 size={24} /></div>
-           <h3 className="text-2xl font-black text-gray-800 dark:text-white">סדרות תשלומים פעילות ({activeSeries.length})</h3>
+           <h3 className="text-2xl font-black text-gray-800 dark:text-white">סדרות פעילות ({activeSeries.length})</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           {activeSeries.length > 0 ? activeSeries.map(series => (
-             <motion.div 
-               layout
-               key={series.template.recurringId} 
-               className="bg-gray-50 dark:bg-[#121212] p-8 rounded-[40px] border border-transparent hover:border-brand/30 transition-all group relative overflow-hidden"
-             >
-               <div className="absolute top-0 left-0 w-2 h-full bg-brand opacity-0 group-hover:opacity-100 transition-opacity" />
-               
-               <div className="flex justify-between items-start mb-6">
-                 <div>
-                    <h4 className="text-2xl font-black text-gray-800 dark:text-white mb-1">{series.template.description}</h4>
-                    <span className="text-[10px] font-black text-brand bg-brand/10 px-3 py-1 rounded-full uppercase tracking-widest">
-                      {series.template.categoryName}
-                    </span>
+           {activeSeries.length > 0 ? activeSeries.map(series => {
+             const isIncome = series.template.type === 'income';
+             return (
+               <motion.div 
+                 layout
+                 key={series.template.recurringId} 
+                 className="bg-gray-50 dark:bg-[#121212] p-8 rounded-[40px] border border-transparent hover:border-brand/30 transition-all group relative overflow-hidden"
+               >
+                 <div className={`absolute top-0 left-0 w-2 h-full opacity-0 group-hover:opacity-100 transition-opacity ${isIncome ? 'bg-emerald-500' : 'bg-brand'}`} />
+                 
+                 <div className="flex justify-between items-start mb-6">
+                   <div>
+                      <h4 className="text-2xl font-black text-gray-800 dark:text-white mb-1.5">{series.template.description}</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-[10px] font-black text-gray-400 bg-gray-200/50 dark:bg-white/5 px-2.5 py-0.5 rounded-full uppercase tracking-widest">
+                          {series.template.categoryName}
+                        </span>
+                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest ${isIncome ? 'text-emerald-500 bg-emerald-500/10' : 'text-brand bg-brand/10'}`}>
+                          {isIncome ? 'הכנסה קבועה' : 'הוצאה קבועה'}
+                        </span>
+                      </div>
+                   </div>
+                   <div className="text-left">
+                      <p className={`text-3xl font-black ${isIncome ? 'text-emerald-500' : 'text-gray-900 dark:text-white'}`} dir="ltr">₪{series.template.amount.toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1">לחודש</p>
+                   </div>
                  </div>
-                 <div className="text-left">
-                    <p className="text-3xl font-black text-gray-900 dark:text-white" dir="ltr">₪{series.template.amount.toLocaleString()}</p>
-                    <p className="text-[10px] font-bold text-gray-400 mt-1">לחודש</p>
+
+                 <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                       <p className="text-[9px] font-black text-gray-400 uppercase mb-1">התחלה</p>
+                       <p className="text-sm font-black text-gray-700 dark:text-gray-200" dir="ltr">{series.startDate.split('-').reverse().join('/')}</p>
+                    </div>
+                    <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                       <p className="text-[9px] font-black text-gray-400 uppercase mb-1">סיום משוער</p>
+                       <p className="text-sm font-black text-gray-700 dark:text-gray-200" dir="ltr">{series.endDate.split('-').reverse().join('/')}</p>
+                    </div>
                  </div>
-               </div>
 
-               <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
-                     <p className="text-[9px] font-black text-gray-400 uppercase mb-1">התחלה</p>
-                     <p className="text-sm font-black text-gray-700 dark:text-gray-200" dir="ltr">{series.startDate.split('-').reverse().join('/')}</p>
-                  </div>
-                  <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
-                     <p className="text-[9px] font-black text-gray-400 uppercase mb-1">סיום משוער</p>
-                     <p className="text-sm font-black text-gray-700 dark:text-gray-200" dir="ltr">{series.endDate.split('-').reverse().join('/')}</p>
-                  </div>
-               </div>
-
-               <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => handleEditSeries(series.template)}
-                    className="flex-1 bg-white dark:bg-white/5 py-4 rounded-2xl font-black text-gray-700 dark:text-white border border-gray-100 dark:border-white/5 hover:border-brand/50 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Edit2 size={16} /> עריכת סדרה
-                  </button>
-                  <button 
-                    onClick={() => deleteSeries(series.template.recurringId!)}
-                    className="p-4 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all border border-rose-100 dark:border-rose-900/20"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-               </div>
-               
-               <div className="mt-4 flex items-center gap-2 justify-center">
-                  <Clock size={12} className="text-gray-400" />
-                  <p className="text-[10px] font-bold text-gray-400">הסדרה כוללת {series.count} מופעים ביומן</p>
-               </div>
-             </motion.div>
-           )) : (
+                 <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => handleEditSeries(series.template)}
+                      className="flex-1 bg-white dark:bg-white/5 py-4 rounded-2xl font-black text-gray-700 dark:text-white border border-gray-100 dark:border-white/5 hover:border-brand/50 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Edit2 size={16} /> עריכת סדרה
+                    </button>
+                    <button 
+                      onClick={() => deleteSeries(series.template.recurringId!)}
+                      className="p-4 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all border border-rose-100 dark:border-rose-900/20"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                 </div>
+                 
+                 <div className="mt-4 flex items-center gap-2 justify-center">
+                    <Clock size={12} className="text-gray-400" />
+                    <p className="text-[10px] font-bold text-gray-400">הסדרה כוללת {series.count} מופעים ביומן</p>
+                 </div>
+               </motion.div>
+             );
+           }) : (
              <div className="col-span-full py-20 text-center space-y-4">
                 <Repeat size={60} className="mx-auto text-gray-200 dark:text-gray-800 opacity-20" />
-                <p className="text-gray-400 font-black italic text-xl">לא נמצאו סדרות תשלומים קבועות ביומן.</p>
-                <p className="text-gray-300 font-bold max-w-sm mx-auto">כדי ליצור אחת, סמן "קבוע" בעת הוספת תנועה חדשה ביומן.</p>
+                <p className="text-gray-400 font-black italic text-xl">לא נמצאו סדרות קבועות ביומן.</p>
+                <p className="text-gray-300 font-bold max-w-sm mx-auto">כדי ליצור אחת, סמן "תנועה קבועה" בעת הוספת תנועה חדשה ביומן.</p>
              </div>
            )}
         </div>

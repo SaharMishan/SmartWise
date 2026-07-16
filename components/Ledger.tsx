@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserState, Transaction } from '../types';
-import { Search, Download, ArrowUp, ArrowDown, Trash2, Calendar, ChevronDown, Filter, LayoutList, MoreVertical, Activity, Info, AlertCircle, X, Repeat } from 'lucide-react';
+import { Search, Download, ArrowUp, ArrowDown, Trash2, Calendar, ChevronDown, Filter, LayoutList, MoreVertical, Activity, Info, AlertCircle, X, Repeat, ArrowUpDown } from 'lucide-react';
 
 interface LedgerProps {
   state: UserState;
@@ -18,25 +18,72 @@ const Ledger: React.FC<LedgerProps> = ({ state, onDelete }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
+  // Filters and Sorting state
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterDay, setFilterDay] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'description' | 'category' | 'amount'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     return Array.from({ length: 11 }, (_, i) => current - 5 + i);
   }, []);
 
+  // Compute days of the selected month that actually have transactions
+  const availableDays = useMemo(() => {
+    const days = new Set<string>();
+    state.transactions.forEach(t => {
+      const parts = t.date.split('-');
+      const tYear = parseInt(parts[0]);
+      const tMonth = parseInt(parts[1]) - 1;
+      if (tMonth === selectedMonth && tYear === selectedYear) {
+        days.add(parseInt(parts[2]).toString());
+      }
+    });
+    return Array.from(days).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [state.transactions, selectedMonth, selectedYear]);
+
   const filteredTransactions = useMemo(() => {
-    return state.transactions.filter(t => {
+    let result = state.transactions.filter(t => {
       // Deep fix: String comparison to avoid timezone shifts
       const parts = t.date.split('-');
       const tYear = parseInt(parts[0]);
       const tMonth = parseInt(parts[1]) - 1;
+      const tDay = parseInt(parts[2]).toString();
 
       const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             t.categoryName?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesMonth = tMonth === selectedMonth && tYear === selectedYear;
-      return matchesSearch && matchesMonth;
+
+      const matchesType = filterType === 'all' || t.type === filterType;
+      const matchesCategory = filterCategory === 'all' || t.categoryId === filterCategory;
+      const matchesDay = filterDay === 'all' || tDay === filterDay;
+
+      return matchesSearch && matchesMonth && matchesType && matchesCategory && matchesDay;
     });
-  }, [state.transactions, searchTerm, selectedMonth, selectedYear]);
+
+    // Sort transactions
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = a.date.localeCompare(b.date);
+      } else if (sortBy === 'description') {
+        comparison = a.description.localeCompare(b.description);
+      } else if (sortBy === 'category') {
+        const catA = a.categoryName || '';
+        const catB = b.categoryName || '';
+        comparison = catA.localeCompare(catB);
+      } else if (sortBy === 'amount') {
+        comparison = a.amount - b.amount;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return result;
+  }, [state.transactions, searchTerm, selectedMonth, selectedYear, filterType, filterCategory, filterDay, sortBy, sortOrder]);
 
   const confirmDelete = (deleteFuture: boolean = false) => {
     if (transactionToDelete) {
@@ -157,6 +204,79 @@ const Ledger: React.FC<LedgerProps> = ({ state, onDelete }) => {
               {isExporting ? <Activity size={18} className="animate-spin" /> : <Download size={20} />}
               <span className="font-black text-sm">ייצוא</span>
            </button>
+        </div>
+      </div>
+
+      {/* סרגל סינון ומיון מתקדם */}
+      <div className="bg-white dark:bg-[#1e1e1e] rounded-[32px] p-6 border border-gray-100 dark:border-white/5 shadow-sm space-y-4 md:space-y-0 md:flex md:items-center md:justify-between gap-4">
+        {/* סינונים */}
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 text-gray-400 font-bold text-xs">
+            <Filter size={16} className="text-brand" />
+            <span>סנן לפי:</span>
+          </div>
+          
+          {/* סוג תנועה */}
+          <select 
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as any)}
+            className="bg-gray-50 dark:bg-[#121212] border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-gray-700 dark:text-gray-200 cursor-pointer outline-none focus:border-brand"
+          >
+            <option value="all">כל סוגי הפעולות</option>
+            <option value="expense">הוצאות בלבד</option>
+            <option value="income">הכנסות בלבד</option>
+          </select>
+
+          {/* קטגוריה */}
+          <select 
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="bg-gray-50 dark:bg-[#121212] border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-gray-700 dark:text-gray-200 cursor-pointer outline-none focus:border-brand"
+          >
+            <option value="all">כל הקטגוריות</option>
+            {state.categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          {/* יום בחודש */}
+          <select 
+            value={filterDay}
+            onChange={(e) => setFilterDay(e.target.value)}
+            className="bg-gray-50 dark:bg-[#121212] border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-gray-700 dark:text-gray-200 cursor-pointer outline-none focus:border-brand"
+          >
+            <option value="all">כל הימים</option>
+            {availableDays.map(day => (
+              <option key={day} value={day}>יום {day}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* מיונים */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-gray-400 font-bold text-xs">
+            <ArrowUpDown size={16} className="text-brand" />
+            <span>מיין לפי:</span>
+          </div>
+
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="bg-gray-50 dark:bg-[#121212] border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-gray-700 dark:text-gray-200 cursor-pointer outline-none focus:border-brand"
+          >
+            <option value="date">תאריך</option>
+            <option value="description">תיאור תנועה</option>
+            <option value="category">קטגוריה</option>
+            <option value="amount">סכום</option>
+          </select>
+
+          <button 
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="p-2.5 bg-gray-50 dark:bg-[#121212] border border-gray-100 dark:border-white/10 rounded-xl text-gray-500 hover:text-brand transition-colors flex items-center justify-center"
+            title={sortOrder === 'asc' ? 'סדר עולה' : 'סדר יורד'}
+          >
+            {sortOrder === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+          </button>
         </div>
       </div>
 
