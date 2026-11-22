@@ -44,6 +44,37 @@
             padding-bottom: env(safe-area-inset-bottom);
           }
         }
+        html, body {
+          overflow-x: hidden;
+          max-width: 100%;
+        }
+        /* Touch-friendly range sliders for mobile */
+        input[type="range"].touch-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          height: 10px;
+          border-radius: 9999px;
+        }
+        input[type="range"].touch-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: #00b894;
+          cursor: pointer;
+          border: 3px solid #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 184, 148, 0.35);
+        }
+        input[type="range"].touch-slider::-moz-range-thumb {
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: #00b894;
+          cursor: pointer;
+          border: 3px solid #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 184, 148, 0.35);
+        }
     </style>
 <script type="importmap">
 {

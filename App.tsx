@@ -56,6 +56,8 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  const toggleTheme = () => setIsDarkMode(prev => !prev);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsMobileMenuOpen(false);
@@ -170,88 +172,99 @@ const App: React.FC = () => {
     setEditingTransaction(undefined);
   };
 
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+  useEffect(() => {
+    const hasOverlay = isMobileMenuOpen || isInstallModalOpen;
+    document.body.style.overflow = hasOverlay ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen, isInstallModalOpen]);
 
-  const Logo = ({ size = "w-12 h-12", fontSize = "text-2xl" }) => (
-    <motion.button onClick={() => setView('dashboard')} className="flex items-center gap-4 text-right group">
+  const Logo = ({ size = "w-11 h-11", fontSize = "text-xl" }) => (
+    <motion.button onClick={() => setView('dashboard')} className="flex items-center gap-3 text-right group">
       <div className={`${size} rounded-2xl bg-brand flex items-center justify-center text-white shadow-lg shadow-brand/20 font-black ${fontSize}`}>S</div>
-      <div className="hidden md:block">
-        <h1 className="text-2xl font-black text-brand">SmartWise</h1>
-        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Premium Strategy</p>
+      <div className="hidden sm:block">
+        <h1 className="text-xl lg:text-2xl font-black text-brand leading-none">SmartWise</h1>
+        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Premium Strategy</p>
       </div>
     </motion.button>
+  );
+
+  const mobileMoreItems = NAV_ITEMS.filter(
+    item => !['dashboard', 'add-transaction', 'shopping', 'tasks'].includes(item.id)
   );
 
   const InstallAppModal = () => (
     <AnimatePresence>
       {isInstallModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-10">
+        <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-10">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsInstallModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-5xl bg-white dark:bg-[#1a1a1a] rounded-[48px] p-8 md:p-14 shadow-2xl border border-white/10 overflow-y-auto no-scrollbar max-h-[90vh] text-right" dir="rtl">
-            <button onClick={() => setIsInstallModalOpen(false)} className="absolute top-8 left-8 p-3 text-gray-400 hover:text-brand transition-all"><X size={32} /></button>
-            <div className="text-center space-y-4 mb-12">
-              <div className="w-20 h-20 bg-brand/10 text-brand rounded-[28px] flex items-center justify-center mx-auto mb-4"><Download size={40} /></div>
-              <h2 className="text-4xl font-black text-gray-800 dark:text-white">התקנת SmartWise</h2>
-              <p className="text-gray-400 font-bold max-w-md mx-auto">הפוך את האפליקציה לחלק בלתי נפרד מהמכשיר שלך לגישה מהירה וחווית משתמש מלאה.</p>
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="relative w-full max-w-5xl bg-white dark:bg-[#1a1a1a] rounded-t-[36px] sm:rounded-[44px] p-6 sm:p-10 md:p-14 shadow-2xl border border-white/10 overflow-y-auto no-scrollbar max-h-[90dvh] text-right" dir="rtl">
+            <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-4 sm:hidden" />
+            <button onClick={() => setIsInstallModalOpen(false)} className="absolute top-5 left-5 sm:top-8 sm:left-8 p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-brand transition-all"><X size={24} /></button>
+            <div className="text-center space-y-3 mb-8 sm:mb-12 pt-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand/10 text-brand rounded-[24px] sm:rounded-[28px] flex items-center justify-center mx-auto mb-3"><Download size={32} /></div>
+              <h2 className="text-2xl sm:text-4xl font-black text-gray-800 dark:text-white">התקנת SmartWise</h2>
+              <p className="text-sm sm:text-base text-gray-400 font-bold max-w-md mx-auto">הפוך את האפליקציה לחלק בלתי נפרד מהמכשיר שלך לגישה מהירה וחווית משתמש מלאה.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
               {/* PC Section */}
-              <div className="space-y-6 bg-gray-50 dark:bg-white/5 p-8 rounded-[40px] border border-gray-100 dark:border-white/5">
-                <div className="flex items-center gap-3 text-brand font-black"><Monitor size={24} /> <span className="text-xl">מחשב (PC/Mac)</span></div>
-                <div className="space-y-6">
-                  <div className="space-y-3">
+              <div className="space-y-4 sm:space-y-6 bg-gray-50 dark:bg-white/5 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-gray-100 dark:border-white/5">
+                <div className="flex items-center gap-3 text-brand font-black"><Monitor size={22} /> <span className="text-lg sm:text-xl">מחשב (PC/Mac)</span></div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
                     <p className="flex items-center gap-2 text-xs font-black text-gray-700 dark:text-gray-200"><Globe size={14} className="text-brand" /> Chrome / Edge:</p>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500">לחץ על אייקון ה-<b>Install</b> (סימן פלוס בתוך מסך) המופיע בצד ימין של שורת הכתובת למעלה, ואז אשר את ההתקנה.</p>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500">לחץ על אייקון ה-<b>Install</b> המופיע בצד ימין של שורת הכתובת למעלה, ואז אשר את ההתקנה.</p>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <p className="flex items-center gap-2 text-xs font-black text-gray-700 dark:text-gray-200"><Apple size={14} className="text-brand" /> Safari (Mac):</p>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500">עבור לתפריט <b>קובץ (File)</b> ובחר ב-<b>הוסף ל-Dock</b> (Add to Dock).</p>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500">עבור לתפריט <b>קובץ (File)</b> ובחר ב-<b>הוסף ל-Dock</b> (Add to Dock).</p>
                   </div>
                 </div>
               </div>
 
               {/* Android Section */}
-              <div className="space-y-6 bg-gray-50 dark:bg-white/5 p-8 rounded-[40px] border border-gray-100 dark:border-white/5">
-                <div className="flex items-center gap-3 text-brand font-black"><Smartphone size={24} /> <span className="text-xl">אנדרואיד (Android)</span></div>
-                <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">1</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">פתח את האתר בדפדפן <b>Chrome</b>.</p>
+              <div className="space-y-4 sm:space-y-6 bg-gray-50 dark:bg-white/5 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-gray-100 dark:border-white/5">
+                <div className="flex items-center gap-3 text-brand font-black"><Smartphone size={22} /> <span className="text-lg sm:text-xl">אנדרואיד (Android)</span></div>
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">1</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">פתח את האתר בדפדפן <b>Chrome</b>.</p>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">2</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">לחץ על תפריט 3 הנקודות בפינה העליונה.</p>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">2</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">לחץ על תפריט 3 הנקודות בפינה העליונה.</p>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">3</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">בחר ב-<b>"התקנת אפליקציה"</b> או <b>"הוסף למסך הבית"</b>.</p>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">3</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">בחר ב-<b>"התקנת אפליקציה"</b> או <b>"הוסף למסך הבית"</b>.</p>
                   </div>
                 </div>
               </div>
 
               {/* iOS Section */}
-              <div className="space-y-6 bg-gray-50 dark:bg-white/5 p-8 rounded-[40px] border border-gray-100 dark:border-white/5">
-                <div className="flex items-center gap-3 text-brand font-black"><Apple size={24} /> <span className="text-xl">אייפון (iOS)</span></div>
-                <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">1</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">פתח את האתר בדפדפן <b>Safari</b>.</p>
+              <div className="space-y-4 sm:space-y-6 bg-gray-50 dark:bg-white/5 p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-gray-100 dark:border-white/5">
+                <div className="flex items-center gap-3 text-brand font-black"><Apple size={22} /> <span className="text-lg sm:text-xl">אייפון (iOS)</span></div>
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">1</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">פתח את האתר בדפדפן <b>Safari</b>.</p>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">2</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">לחץ על כפתור ה-<b>שתף</b> (אייקון ריבוע עם חץ) בתחתית המסך.</p>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">2</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">לחץ על כפתור ה-<b>שתף</b> (אייקון ריבוע עם חץ) בתחתית המסך.</p>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">3</div>
-                    <p className="text-[11px] font-bold leading-relaxed text-gray-500 dark:text-gray-400">גלול מטה ובחר ב-<b>"הוספה למסך הבית"</b>.</p>
+                  <div className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center text-xs font-black shrink-0 shadow-lg shadow-brand/20">3</div>
+                    <p className="text-xs font-bold leading-relaxed text-gray-500 dark:text-gray-400">גלול מטה ובחר ב-<b>"הוספה למסך הבית"</b>.</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 text-center">
-              <button onClick={() => setIsInstallModalOpen(false)} className="px-14 py-5 bg-brand text-white font-black rounded-3xl shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all">הבנתי, תודה!</button>
+            <div className="mt-8 sm:mt-12 text-center pb-2">
+              <button onClick={() => setIsInstallModalOpen(false)} className="w-full sm:w-auto px-14 py-4 sm:py-5 bg-brand text-white font-black rounded-2xl sm:rounded-3xl shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all">הבנתי, תודה!</button>
             </div>
           </motion.div>
         </div>
@@ -262,13 +275,14 @@ const App: React.FC = () => {
   if (loading) return null;
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-[#f8f9fa] dark:bg-[#0a0a0a] text-[#2d3436] dark:text-gray-100 transition-colors duration-500 overflow-x-hidden relative`}>
+    <div className={`min-h-[100dvh] ${isDarkMode ? 'dark' : ''} bg-[#f8f9fa] dark:bg-[#0a0a0a] text-[#2d3436] dark:text-gray-100 transition-colors duration-500 overflow-x-hidden relative`}>
       <AnimatePresence mode="wait">
         {view === 'portal' ? (
           <Portal key="portal" isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
         ) : (
-          <motion.div key="app-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col md:flex-row min-h-screen relative z-10">
-            <nav className="hidden md:flex w-72 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-2xl border-l border-gray-100 dark:border-white/5 flex-col p-8 z-50 shadow-2xl overflow-y-auto no-scrollbar">
+          <motion.div key="app-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col lg:flex-row min-h-[100dvh] relative z-10">
+            {/* Desktop Sidebar (lg and up so tablets get full width) */}
+            <nav className="hidden lg:flex w-72 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-2xl border-l border-gray-100 dark:border-white/5 flex-col p-8 z-50 shadow-2xl overflow-y-auto no-scrollbar shrink-0">
               <div className="mb-8 shrink-0"><Logo /></div>
               
               {/* Install App Button positioned under Logo */}
@@ -298,19 +312,20 @@ const App: React.FC = () => {
               </div>
             </nav>
 
-            <div className="md:hidden flex justify-between items-center p-6 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl z-40 border-b border-gray-100 dark:border-white/5">
+            {/* Mobile & Tablet Top Bar */}
+            <header className="lg:hidden sticky top-0 flex justify-between items-center px-4 sm:px-6 py-3.5 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl z-40 border-b border-gray-100 dark:border-white/5">
                <Logo size="w-10 h-10" fontSize="text-xl" />
                <div className="flex items-center gap-2">
-                 <button onClick={() => setIsInstallModalOpen(true)} className="p-3 bg-brand/10 rounded-2xl text-brand">
+                 <button onClick={() => setIsInstallModalOpen(true)} aria-label="התקנת אפליקציה" className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-brand/10 rounded-2xl text-brand active:scale-95 transition-transform">
                    <Download size={20} />
                  </button>
-                 <button onClick={toggleTheme} className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl text-gray-400">
+                 <button onClick={toggleTheme} aria-label="החלפת מצב תצוגה" className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-50 dark:bg-white/5 rounded-2xl text-gray-500 dark:text-gray-300 active:scale-95 transition-transform">
                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                  </button>
                </div>
-            </div>
+            </header>
 
-            <main className="flex-1 p-5 md:p-14 overflow-y-auto pb-40 md:pb-14">
+            <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-12 overflow-y-auto pb-28 lg:pb-12">
               <AnimatePresence mode="wait">
                 <motion.div key={view} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   {view === 'dashboard' && <Dashboard state={state} onAddClick={() => setView('add-transaction')} onEditTransaction={(t) => { setEditingTransaction(t); setIsQuickEntryOpen(true); }} onDeleteTransaction={handleDeleteTransaction} isDarkMode={isDarkMode} />}
@@ -330,42 +345,78 @@ const App: React.FC = () => {
             <QuickEntryModal isOpen={isQuickEntryOpen} initialData={editingTransaction} onClose={() => { setIsQuickEntryOpen(false); setEditingTransaction(undefined); }} onSave={handleQuickEntrySave} categories={state.categories} />
             <InstallAppModal />
 
-            <nav className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-2xl rounded-[38px] border border-white/40 dark:border-white/5 z-[100] px-8 shadow-2xl flex items-center justify-between">
-              <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1.5 ${view === 'dashboard' ? 'text-brand' : 'text-gray-400'}`}>
-                <LayoutDashboard size={24} /> <span className="text-[10px] font-black">הבית</span>
-              </button>
-              <button onClick={() => setView('shopping')} className={`flex flex-col items-center gap-1.5 ${view === 'shopping' ? 'text-brand' : 'text-gray-400'}`}>
-                <ShoppingBag size={24} /> <span className="text-[10px] font-black">קניות</span>
-              </button>
-              <div className="relative -top-8">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setView('add-transaction')} className="w-16 h-16 bg-brand rounded-full flex items-center justify-center text-white shadow-xl border-[5px] border-white dark:border-[#1a1a1a]">
-                  <Plus size={32} strokeWidth={3} />
-                </motion.button>
+            {/* Mobile & Tablet Fixed Bottom Tab Bar */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-2xl border-t border-gray-100 dark:border-white/5 z-[100] px-2 sm:px-6 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_35px_rgba(0,0,0,0.08)]">
+              <div className="max-w-lg mx-auto h-16 flex items-center justify-around">
+                <button onClick={() => setView('dashboard')} className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-1 transition-colors ${view === 'dashboard' ? 'text-brand' : 'text-gray-400'}`}>
+                  <LayoutDashboard size={22} /> <span className="text-[10px] font-black leading-none">הבית</span>
+                </button>
+                <button onClick={() => setView('shopping')} className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-1 transition-colors ${view === 'shopping' ? 'text-brand' : 'text-gray-400'}`}>
+                  <ShoppingBag size={22} /> <span className="text-[10px] font-black leading-none">קניות</span>
+                </button>
+                <div className="relative -top-5">
+                  <motion.button whileTap={{ scale: 0.92 }} onClick={() => setView('add-transaction')} aria-label="הוספת תנועה" className="w-14 h-14 bg-brand rounded-full flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white dark:border-[#1a1a1a]">
+                    <Plus size={28} strokeWidth={3} />
+                  </motion.button>
+                </div>
+                <button onClick={() => setView('tasks')} className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-1 transition-colors ${view === 'tasks' ? 'text-brand' : 'text-gray-400'}`}>
+                  <CheckSquare size={22} /> <span className="text-[10px] font-black leading-none">מטלות</span>
+                </button>
+                <button onClick={() => setIsMobileMenuOpen(true)} className={`min-w-[56px] min-h-[44px] flex flex-col items-center justify-center gap-1 transition-colors ${isMobileMenuOpen || mobileMoreItems.some(i => i.id === view) ? 'text-brand' : 'text-gray-400'}`}>
+                  <Menu size={22} /> <span className="text-[10px] font-black leading-none">עוד</span>
+                </button>
               </div>
-              <button onClick={() => setView('tasks')} className={`flex flex-col items-center gap-1.5 ${view === 'tasks' ? 'text-brand' : 'text-gray-400'}`}>
-                <CheckSquare size={24} /> <span className="text-[10px] font-black">מטלות</span>
-              </button>
-              <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center gap-1.5 text-gray-400">
-                <Menu size={24} /> <span className="text-[10px] font-black">עוד</span>
-              </button>
             </nav>
 
+            {/* Mobile & Tablet More Sheet (compact, fits cleanly without unnecessary scrolling) */}
             <AnimatePresence>
               {isMobileMenuOpen && (
                 <>
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] md:hidden" />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[48px] p-10 z-[120] md:hidden">
-                    <div className="grid grid-cols-2 gap-4 pb-12">
-                      <button onClick={() => setIsInstallModalOpen(true)} className="col-span-2 p-6 bg-brand/10 border border-brand/20 rounded-3xl flex items-center justify-center gap-4 text-brand">
-                        <Download size={24} />
-                        <span className="font-black text-sm">התקנת אפליקציה</span>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] lg:hidden" />
+                  <motion.div
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    exit={{ y: "100%" }}
+                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
+                    className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1a1a1a] rounded-t-[32px] px-5 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] z-[120] lg:hidden shadow-2xl border-t border-gray-100 dark:border-white/10 max-h-[85dvh] overflow-y-auto overscroll-contain no-scrollbar"
+                    dir="rtl"
+                  >
+                    <div className="w-10 h-1.5 bg-gray-200 dark:bg-white/15 rounded-full mx-auto mb-4" />
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-black text-gray-800 dark:text-white">תפריט וכלים נוספים</h3>
+                      <button onClick={() => setIsMobileMenuOpen(false)} aria-label="סגור תפריט" className="min-w-[40px] min-h-[40px] rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500">
+                        <X size={18} />
                       </button>
-                      {NAV_ITEMS.map(item => (
-                        <button key={item.id} onClick={() => { setView(item.id as AppView); setIsMobileMenuOpen(false); }} className="p-6 bg-gray-50 dark:bg-white/5 rounded-3xl flex flex-col items-center gap-3">
-                          <div className="text-brand">{item.icon}</div>
-                          <span className="font-black text-xs">{item.label}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {mobileMoreItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setView(item.id as AppView); setIsMobileMenuOpen(false); }}
+                          className={`p-3.5 rounded-2xl flex items-center gap-3 text-right transition-all border ${view === item.id ? 'bg-brand text-white border-brand shadow-md' : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 border-transparent'}`}
+                        >
+                          <div className={`shrink-0 ${view === item.id ? 'text-white' : 'text-brand'}`}>{item.icon}</div>
+                          <span className="font-black text-xs leading-tight">{item.label}</span>
                         </button>
                       ))}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/10 grid grid-cols-2 gap-2.5">
+                      <button
+                        onClick={() => { setIsMobileMenuOpen(false); setIsInstallModalOpen(true); }}
+                        className="py-3 px-4 bg-brand/10 text-brand rounded-2xl flex items-center justify-center gap-2 font-black text-xs min-h-[44px]"
+                      >
+                        <Download size={16} />
+                        <span>התקן אפליקציה</span>
+                      </button>
+                      <button
+                        onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
+                        className="py-3 px-4 bg-rose-50 dark:bg-rose-900/15 text-rose-500 rounded-2xl flex items-center justify-center gap-2 font-black text-xs min-h-[44px]"
+                      >
+                        <LogOut size={16} />
+                        <span>התנתקות</span>
+                      </button>
                     </div>
                   </motion.div>
                 </>

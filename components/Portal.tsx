@@ -131,34 +131,34 @@ const Portal: React.FC<PortalProps> = ({ isDarkMode, toggleTheme }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }}
-      className="h-screen w-screen bg-white dark:bg-[#0a0a0a] flex flex-col md:flex-row overflow-hidden font-['Assistant'] relative"
+      className="min-h-[100dvh] lg:h-screen w-full bg-white dark:bg-[#0a0a0a] flex flex-col lg:flex-row overflow-x-hidden lg:overflow-hidden font-['Assistant'] relative"
     >
       <AnimatePresence>
         {showResetModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowResetModal(false)} className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 30 }}
-              className="relative w-full max-w-md bg-white dark:bg-[#1a1a1a] p-8 md:p-12 rounded-[40px] md:rounded-[50px] shadow-2xl space-y-8 border border-white/10"
+              className="relative w-full max-w-md bg-white dark:bg-[#1a1a1a] p-6 sm:p-8 md:p-12 rounded-[36px] md:rounded-[50px] shadow-2xl space-y-6 md:space-y-8 border border-white/10"
             >
-              <button onClick={() => setShowResetModal(false)} className="absolute top-6 left-6 md:top-8 md:left-8 text-gray-400 hover:text-brand transition-all"><X size={28} /></button>
-              <div className="text-center space-y-4">
-                <div className="w-20 h-20 bg-emerald-50 dark:bg-brand/10 rounded-3xl flex items-center justify-center text-brand mx-auto"><Lock size={40} /></div>
+              <button onClick={() => setShowResetModal(false)} className="absolute top-5 left-5 md:top-8 md:left-8 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-brand transition-all"><X size={26} /></button>
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-emerald-50 dark:bg-brand/10 rounded-3xl flex items-center justify-center text-brand mx-auto"><Lock size={34} /></div>
                 <h2 className="text-2xl md:text-3xl font-black text-gray-800 dark:text-white">איפוס סיסמה</h2>
                 <p className="text-sm md:text-base text-gray-400 font-bold">הכנס את המייל ונשלח לך קישור לאיפוס.</p>
               </div>
               <div className="space-y-4">
                 <input type="email" placeholder="email@example.com" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-[#0a0a0a] border-none rounded-2xl px-6 py-4 md:py-5 font-bold dark:text-white outline-none ring-2 ring-transparent focus:ring-brand/30 transition-all text-sm md:text-base" />
+                  className="w-full bg-gray-50 dark:bg-[#0a0a0a] border-none rounded-2xl px-5 py-4 font-bold dark:text-white outline-none ring-2 ring-transparent focus:ring-brand/30 transition-all text-base" />
                 {resetStatus && <p className={`text-center text-xs font-black ${resetStatus.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>{resetStatus.msg}</p>}
-                <button onClick={handleResetPassword} className="w-full bg-brand text-white py-4 md:py-5 rounded-2xl font-black shadow-2xl active:scale-95 transition-all">שלח קישור לאיפוס</button>
+                <button onClick={handleResetPassword} className="w-full bg-brand text-white py-4 rounded-2xl font-black shadow-2xl active:scale-95 transition-all min-h-[48px]">שלח קישור לאיפוס</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Hero Side - Hidden on mobile */}
-      <div className="hidden md:flex flex-1 bg-gradient-to-br from-[#f0fff4] via-white to-[#f7fee7] dark:from-[#0d1a14] dark:via-[#0a0a0a] dark:to-[#0d1a14] items-center justify-center p-16 relative overflow-hidden h-full">
+      {/* Hero Side - Shown on large desktop screens */}
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-[#f0fff4] via-white to-[#f7fee7] dark:from-[#0d1a14] dark:via-[#0a0a0a] dark:to-[#0d1a14] items-center justify-center p-16 relative overflow-hidden h-full">
         <div className="relative z-10 w-full max-w-2xl space-y-12 text-right">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 dark:bg-[#121212]/80 backdrop-blur-3xl p-14 rounded-[64px] border border-white/40 dark:border-white/5 shadow-2xl space-y-10">
             <div className="flex items-center gap-6">
@@ -184,24 +184,24 @@ const Portal: React.FC<PortalProps> = ({ isDarkMode, toggleTheme }) => {
       </div>
 
       {/* Auth Side */}
-      <div className="w-full md:w-[45%] flex flex-col bg-white dark:bg-[#0a0a0a] z-10 border-r border-gray-50 dark:border-white/5 h-full relative overflow-hidden">
-        {/* Mobile Header - FIXED: Logo Right, Toggle Left */}
-        <div className="w-full px-6 py-4 flex justify-between items-center md:hidden bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md z-[50] border-b border-gray-50 dark:border-white/5 shrink-0" dir="rtl">
+      <div className="w-full lg:w-[45%] flex flex-col bg-white dark:bg-[#0a0a0a] z-10 lg:border-r border-gray-50 dark:border-white/5 min-h-[100dvh] lg:h-full relative">
+        {/* Mobile & Tablet Header */}
+        <div className="w-full px-5 py-3.5 flex justify-between items-center lg:hidden bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md sticky top-0 z-[50] border-b border-gray-100 dark:border-white/5 shrink-0" dir="rtl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg font-black text-xl">S</div>
             <h2 className="text-xl font-black text-brand tracking-tighter">SmartWise</h2>
           </div>
-          <button onClick={toggleTheme} className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400 hover:text-brand transition-all active:scale-90">
+          <button onClick={toggleTheme} aria-label="מצב תצוגה" className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400 hover:text-brand transition-all active:scale-90">
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
 
         {/* Auth Content Container */}
-        <div className="flex-1 flex flex-col items-center justify-between px-6 md:px-16 py-8 md:py-16 overflow-y-auto no-scrollbar overflow-x-hidden">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md flex flex-col h-full justify-between gap-4 md:gap-12">
+        <div className="flex-1 flex flex-col items-center justify-center px-5 sm:px-8 md:px-16 py-6 md:py-12 lg:overflow-y-auto no-scrollbar">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-md flex flex-col justify-between gap-6 lg:gap-10 my-auto">
             
-            {/* Desktop Header - FIXED: Logo Right, Toggle Left */}
-            <div className="hidden md:flex items-center justify-between w-full shrink-0" dir="rtl">
+            {/* Desktop Header */}
+            <div className="hidden lg:flex items-center justify-between w-full shrink-0" dir="rtl">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg font-black text-2xl">S</div>
                 <h2 className="text-3xl font-black text-brand tracking-tighter">SmartWise</h2>
